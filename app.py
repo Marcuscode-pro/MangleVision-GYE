@@ -7,112 +7,135 @@ from PIL import Image
 import os
 import plotly.express as px
 
-# --- 1. CONFIGURACIÓN (WIDER LAYOUT) ---
-st.set_page_config(page_title="MangleVision Pro 2026", layout="wide")
+# --- 1. PAGE CONFIGURATION ---
+st.set_page_config(page_title="MangleVision GYE", layout="wide")
 
-# --- 2. CSS PARA ELIMINAR COMPRESIÓN ---
+# --- 2. ADVANCED CSS FOR FULL-WIDTH & DARK THEME ---
 st.markdown("""
     <style>
-    /* Estilo Dark y Métricas */
-    .stApp { background-color: #0e1117; }
-    .stMetric { background-color: #1d2127; border-radius: 10px; padding: 15px; border: 1px solid #30363d; }
-    
-    /* FORZAR ANCHO MÁXIMO (Esto evita que se vea pequeño) */
+    /* Remove padding and force max width */
     .block-container { 
-        padding-top: 1rem; 
-        padding-bottom: 1rem; 
-        padding-left: 2rem !important; 
-        padding-right: 2rem !important; 
-        max-width: 100% !important;
+        padding-top: 1rem !important; 
+        padding-bottom: 0rem !important; 
+        max-width: 95% !important; 
     }
-
-    /* Quitar bordes del comparador */
-    .stImageComparison { border-radius: 15px; overflow: hidden; }
+    .stApp { background-color: #0e1117; }
     
-    /* Hacer que el iframe del comparador sea alto */
-    iframe { min-height: 700px !important; }
+    /* Metric styling */
+    [data-testid="stMetric"] {
+        background-color: #1d2127;
+        border-radius: 10px;
+        padding: 15px;
+        border: 1px solid #30363d;
+    }
+    
+    /* Force Image Comparison to be huge */
+    iframe { 
+        min-height: 800px !important; 
+        width: 100% !important; 
+        border: none;
+    }
+    
+    /* Center Tabs */
+    .stTabs [data-baseweb="tab-list"] { justify-content: center; gap: 50px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATOS ESTRATÉGICOS ---
+# --- 3. STRATEGIC DATASET ---
 @st.cache_data
-def get_territorial_data():
+def load_territorial_data():
     data = {
-        'Sector': ['Urdesa', 'Puerto Hondo', 'La Puntilla', 'Guasmo Sur', 'Vía a la Costa', 'Malecón 2000', 'Isla Santay', 'Entre Ríos'],
+        'Sector': ['Urdesa', 'Puerto Hondo', 'La Puntilla', 'Guasmo Sur', 'Via a la Costa', 'Malecon 2000', 'Santay Island', 'Entre Rios'],
         'Lat': [-2.172, -2.195, -2.142, -2.258, -2.165, -2.191, -2.215, -2.150],
         'Lon': [-79.912, -80.055, -79.865, -79.898, -80.012, -79.878, -79.895, -79.875],
-        'Elevacion': [1.2, 0.5, 2.1, 0.8, 3.8, 2.5, 0.6, 1.9],
-        'Poblacion': [15000, 2000, 12000, 45000, 8000, 5000, 500, 7000]
+        'Elevation': [1.2, 0.5, 2.1, 0.8, 3.8, 2.5, 0.6, 1.9],
+        'Population': [15000, 2000, 12000, 45000, 8000, 5000, 500, 7000]
     }
     return pd.DataFrame(data)
 
-df = get_territorial_data()
+df = load_territorial_data()
 
-# --- 4. SIDEBAR (DASHBOARD DINÁMICO) ---
+# --- 4. DYNAMIC SIDEBAR (SIMULATION CONTROLS) ---
+st.sidebar.title("🕹️ Control Panel")
+# Using a clear icon for the logo fix
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/751/751291.png", width=80)
-st.sidebar.header("🕹️ Simulación")
 
-nivel_marea = st.sidebar.slider("Nivel de Marea (m)", 0.0, 5.0, 2.0, 0.1)
-implementar_manglar = st.sidebar.toggle("🌱 Activar Barrera Viva", value=False)
+sea_level = st.sidebar.slider("Sea Level Rise (m)", 0.0, 5.0, 2.0, 0.1)
+mangrove_barrier = st.sidebar.toggle("🌱 Activate Nature-Based Shield", value=True)
 
-# Lógica de impacto
-reduccion = 0.75 if implementar_manglar else 1.0
-nivel_final = nivel_marea * reduccion
-afectados_df = df[df['Elevacion'] < nivel_final]
-pob_riesgo = afectados_df['Poblacion'].sum()
+# Calculation Logic
+# Mangroves reduce the impact/effective water height by 30%
+impact_factor = 0.7 if mangrove_barrier else 1.0
+effective_height = sea_level * impact_factor
+
+at_risk_df = df[df['Elevation'] < effective_height]
+total_at_risk = at_risk_df['Population'].sum()
 
 st.sidebar.divider()
-st.sidebar.metric("Población en Riesgo", f"{pob_riesgo:,}", 
-                  delta=f"-{int(pob_riesgo*0.25):,} protegidos" if implementar_manglar else None, 
-                  delta_color="inverse")
+st.sidebar.metric(
+    label="Population at Risk", 
+    value=f"{total_at_risk:,}", 
+    delta=f"-{int(total_at_risk*0.3):,} protected" if mangrove_barrier else None, 
+    delta_color="inverse"
+)
 
-# --- 5. CUERPO PRINCIPAL ---
-st.title("🛡️ MangleVision Pro 2026")
-tab1, tab2 = st.tabs(["🌐 PANEL DINÁMICO DE RIESGO", "🖼️ VISUALIZACIÓN DE IMPACTO XL"])
+# --- 5. MAIN INTERFACE ---
+st.title("🛡️ MangleVision Pro: Coastal Resilience")
+tab1, tab2 = st.tabs(["🌐 RISK DASHBOARD", "🖼️ IMPACT VISUALIZATION (XL)"])
 
 # ==========================================
-# PESTAÑA 1: EL DASHBOARD COMPLETO
+# TAB 1: INTERACTIVE RISK MAP
 # ==========================================
 with tab1:
-    col_mapa, col_stats = st.columns([2, 1])
+    st.subheader("Guayaquil Vulnerability Analysis")
+    col_map, col_chart = st.columns([2, 1])
     
-    with col_mapa:
-        st.subheader("Mapa de Vulnerabilidad")
-        m = folium.Map(location=[-2.18, -79.90], zoom_start=12, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google')
+    with col_map:
+        # Map visualization
+        m = folium.Map(location=[-2.18, -79.90], zoom_start=12, tiles='CartoDB dark_matter')
         for i, row in df.iterrows():
-            inundado = nivel_final > row['Elevacion']
+            is_flooded = effective_height > row['Elevation']
+            color = "#FF4B4B" if is_flooded else "#2EB82E"
             folium.CircleMarker(
-                location=[row['Lat'], row['Lon']],
-                radius=row['Poblacion']/3000 + 5,
-                color="#FF4B4B" if inundado else "#2EB82E",
-                fill=True, fill_opacity=0.7,
-                popup=f"<b>{row['Sector']}</b>"
+                [row['Lat'], row['Lon']], 
+                radius=row['Population']/4000 + 5, 
+                color=color, 
+                fill=True, 
+                fill_opacity=0.6,
+                popup=f"<b>{row['Sector']}</b><br>Elevation: {row['Elevation']}m"
             ).add_to(m)
-        folium_static(m, width=800)
-
-    with col_stats:
-        st.subheader("Población Expuesta")
-        fig = px.bar(df, x='Sector', y='Poblacion', color='Elevacion', 
+        folium_static(m, width=900)
+    
+    with col_chart:
+        st.write("### Exposure by Sector")
+        fig = px.bar(df, x='Sector', y='Population', color='Elevation', 
                      color_continuous_scale='RdYlGn_r', template='plotly_dark')
         st.plotly_chart(fig, use_container_width=True)
-        st.dataframe(afectados_df[['Sector', 'Poblacion']], hide_index=True, use_container_width=True)
+        
+        st.write("### Alert List")
+        st.dataframe(at_risk_df[['Sector', 'Population']], hide_index=True, use_container_width=True)
 
 # ==========================================
-# PESTAÑA 2: COMPARADOR (SIN COLUMNAS = MÁXIMO ANCHO)
+# TAB 2: BEFORE/AFTER COMPARISON
 # ==========================================
 with tab2:
-    st.subheader("Simulación Visual: El Poder del Manglar")
+    st.subheader("Visual Simulation: The Power of Mangrove Reforestation")
+    st.info("Slide to compare current infrastructure vs. MangleVision's proposed green belt.")
     
-    # Verificamos archivos
-    if os.path.exists("antes.png") and os.path.exists("despues.png"):
-        # CARGAMOS DIRECTO AL ANCHO DE LA PÁGINA
+    # Image Paths (Ensure these names match your files on GitHub)
+    img_before = "antes.png"
+    img_after = "despues.png"
+
+    if os.path.exists(img_before) and os.path.exists(img_after):
         image_comparison(
-            img1=Image.open("antes.png"),
-            img2=Image.open("despues.png"),
-            label1="ESTADO ACTUAL",
-            label2="PROPUESTA MANGLEVISION",
-            width=30000, # Forzamos un número grande
-            make_responsive=True # Dejamos que el CSS se encargue de ajustarlo al navegador
+            img1=Image.open(img_before),
+            img2=Image.open(img_after),
+            label1="CURRENT STATE",
+            label2="MANGLEVISION PROPOSAL",
+            make_responsive=True,
+            starting_position=50
         )
+        st.success("✅ Mangrove barriers dissipate up to 40% of wave energy, protecting urban value.")
     else:
-        st.error("🚨 Sube 'antes.png' y 'despues.png' a GitHub.")
+        st.error("🚨 Assets Missing: Please ensure 'antes.png' and 'despues.png' are in your GitHub root.")
+        st.write("Current files detected:", os.listdir("."))
