@@ -132,6 +132,7 @@ with tab2:
             img2=Image.open(img_after),
             label1="CURRENT STATE",
             label2="MANGLEVISION PROPOSAL",
+            width = 20000,
             make_responsive=True,
             starting_position=50
         )
