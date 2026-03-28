@@ -88,4 +88,31 @@ with tab1:
                 fill=True, fill_opacity=0.7,
                 popup=f"<b>{row['Sector']}</b>"
             ).add_to(m)
-        fol
+        folium_static(m, width=800)
+
+    with col_stats:
+        st.subheader("Población Expuesta")
+        fig = px.bar(df, x='Sector', y='Poblacion', color='Elevacion', 
+                     color_continuous_scale='RdYlGn_r', template='plotly_dark')
+        st.plotly_chart(fig, use_container_width=True)
+        st.dataframe(afectados_df[['Sector', 'Poblacion']], hide_index=True, use_container_width=True)
+
+# ==========================================
+# PESTAÑA 2: COMPARADOR (SIN COLUMNAS = MÁXIMO ANCHO)
+# ==========================================
+with tab2:
+    st.subheader("Simulación Visual: El Poder del Manglar")
+    
+    # Verificamos archivos
+    if os.path.exists("antes.png") and os.path.exists("despues.png"):
+        # CARGAMOS DIRECTO AL ANCHO DE LA PÁGINA
+        image_comparison(
+            img1=Image.open("antes.png"),
+            img2=Image.open("despues.png"),
+            label1="ESTADO ACTUAL",
+            label2="PROPUESTA MANGLEVISION",
+            width=1400, # Forzamos un número grande
+            make_responsive=True # Dejamos que el CSS se encargue de ajustarlo al navegador
+        )
+    else:
+        st.error("🚨 Sube 'antes.png' y 'despues.png' a GitHub.")
