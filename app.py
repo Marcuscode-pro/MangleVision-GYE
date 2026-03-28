@@ -49,7 +49,7 @@ def get_territorial_data():
 df = get_territorial_data()
 
 # --- 4. SIDEBAR (DASHBOARD DINÁMICO) ---
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Escudo_de_Guayaquil.svg/1200px-Escudo_de_Guayaquil.svg.png", width=80)
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/751/751291.png", width=80)
 st.sidebar.header("🕹️ Simulación")
 
 nivel_marea = st.sidebar.slider("Nivel de Marea (m)", 0.0, 5.0, 2.0, 0.1)
