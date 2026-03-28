@@ -132,8 +132,9 @@ with tab2:
             img2=Image.open(img_after),
             label1="CURRENT STATE",
             label2="MANGLEVISION PROPOSAL",
-            width = 20000,
+            width = 250000,
             make_responsive=True,
+            starting_position=50
             
         )
         st.success("✅ Mangrove barriers dissipate up to 40% of wave energy, protecting urban value.")
