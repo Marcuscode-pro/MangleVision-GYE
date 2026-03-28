@@ -7,90 +7,85 @@ from PIL import Image
 import os
 import plotly.express as px
 
-# --- 1. CONFIGURACIÓN DE PÁGINA (ESTRICTO) ---
-st.set_page_config(page_title="MangleVision Pro 2026", layout="wide", initial_sidebar_state="collapsed")
+# --- 1. CONFIGURACIÓN (WIDER LAYOUT) ---
+st.set_page_config(page_title="MangleVision Pro 2026", layout="wide")
 
-# --- 2. CSS DE ALTO IMPACTO ---
-# Este bloque elimina CUALQUIER margen de Streamlit Cloud
+# --- 2. CSS PARA ELIMINAR COMPRESIÓN ---
 st.markdown("""
     <style>
-    /* Elimina el padding de la aplicación principal */
-    .block-container {
-        padding: 0rem !important;
+    /* Estilo Dark y Métricas */
+    .stApp { background-color: #0e1117; }
+    .stMetric { background-color: #1d2127; border-radius: 10px; padding: 15px; border: 1px solid #30363d; }
+    
+    /* FORZAR ANCHO MÁXIMO (Esto evita que se vea pequeño) */
+    .block-container { 
+        padding-top: 1rem; 
+        padding-bottom: 1rem; 
+        padding-left: 2rem !important; 
+        padding-right: 2rem !important; 
         max-width: 100% !important;
     }
-    /* Fuerza a los iframes (donde vive el comparador) a ser enormes */
-    iframe {
-        width: 100vw !important;
-        height: 80vh !important;
-    }
-    /* Ajuste para pantallas retina/oscuro */
-    .stApp { background-color: #0e1117; }
+
+    /* Quitar bordes del comparador */
+    .stImageComparison { border-radius: 15px; overflow: hidden; }
     
-    /* Estilo para los tabs para que se vean profesionales */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        justify-content: center;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: #1d2127;
-        border-radius: 10px 10px 0px 0px;
-        color: white;
-    }
+    /* Hacer que el iframe del comparador sea alto */
+    iframe { min-height: 700px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. DATOS ---
+# --- 3. DATOS ESTRATÉGICOS ---
 @st.cache_data
-def load_data():
-    return pd.DataFrame({
+def get_territorial_data():
+    data = {
         'Sector': ['Urdesa', 'Puerto Hondo', 'La Puntilla', 'Guasmo Sur', 'Vía a la Costa', 'Malecón 2000', 'Isla Santay', 'Entre Ríos'],
         'Lat': [-2.172, -2.195, -2.142, -2.258, -2.165, -2.191, -2.215, -2.150],
         'Lon': [-79.912, -80.055, -79.865, -79.898, -80.012, -79.878, -79.895, -79.875],
         'Elevacion': [1.2, 0.5, 2.1, 0.8, 3.8, 2.5, 0.6, 1.9],
         'Poblacion': [15000, 2000, 12000, 45000, 8000, 5000, 500, 7000]
-    })
+    }
+    return pd.DataFrame(data)
 
-df = load_data()
+df = get_territorial_data()
 
-# --- 4. SIDEBAR ---
-with st.sidebar:
-    st.header("🕹️ Simulación")
-    nivel_marea = st.slider("Marea (m)", 0.0, 5.0, 2.0)
-    manglar = st.toggle("🌱 Barrera de Manglar")
-    reduccion = 0.7 if manglar else 1.0
+# --- 4. SIDEBAR (DASHBOARD DINÁMICO) ---
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Escudo_de_Guayaquil.svg/1200px-Escudo_de_Guayaquil.svg.png", width=80)
+st.sidebar.header("🕹️ Simulación")
 
-# --- 5. TABS ---
-t1, t2 = st.tabs(["🌐 MAPA DE RIESGO", "🖼️ COMPARADOR DE IMPACTO XL"])
+nivel_marea = st.sidebar.slider("Nivel de Marea (m)", 0.0, 5.0, 2.0, 0.1)
+implementar_manglar = st.sidebar.toggle("🌱 Activar Barrera Viva", value=False)
 
-with t1:
-    st.title("🛡️ MangleVision: Análisis Territorial")
-    m = folium.Map(location=[-2.18, -79.90], zoom_start=12, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google')
-    for i, row in df.iterrows():
-        inundado = (nivel_marea * reduccion) > row['Elevacion']
-        folium.CircleMarker(
-            location=[row['Lat'], row['Lon']],
-            radius=10, color="#FF4B4B" if inundado else "#2EB82E",
-            fill=True, popup=row['Sector']
-        ).add_to(m)
-    folium_static(m, width=1200)
+# Lógica de impacto
+reduccion = 0.75 if implementar_manglar else 1.0
+nivel_final = nivel_marea * reduccion
+afectados_df = df[df['Elevacion'] < nivel_final]
+pob_riesgo = afectados_df['Poblacion'].sum()
 
-with t2:
-    # --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-    st.write("## Visualización de Resiliencia Costera")
+st.sidebar.divider()
+st.sidebar.metric("Población en Riesgo", f"{pob_riesgo:,}", 
+                  delta=f"-{int(pob_riesgo*0.25):,} protegidos" if implementar_manglar else None, 
+                  delta_color="inverse")
+
+# --- 5. CUERPO PRINCIPAL ---
+st.title("🛡️ MangleVision Pro 2026")
+tab1, tab2 = st.tabs(["🌐 PANEL DINÁMICO DE RIESGO", "🖼️ VISUALIZACIÓN DE IMPACTO XL"])
+
+# ==========================================
+# PESTAÑA 1: EL DASHBOARD COMPLETO
+# ==========================================
+with tab1:
+    col_mapa, col_stats = st.columns([2, 1])
     
-    if os.path.exists("antes.png") and os.path.exists("despues.png"):
-        # Usamos un contenedor de Streamlit vacío para forzar el layout
-        container = st.container()
-        with container:
-            image_comparison(
-                img1=Image.open("antes.png"),
-                img2=Image.open("despues.png"),
-                label1="SIN PROTECCIÓN",
-                label2="CON MANGLARES",
-                make_responsive=True, # Deja que el CSS mande
-                in_memory=True
-            )
-    else:
-        st.error("Archivos antes.png y despues.png no detectados.")
+    with col_mapa:
+        st.subheader("Mapa de Vulnerabilidad")
+        m = folium.Map(location=[-2.18, -79.90], zoom_start=12, tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google')
+        for i, row in df.iterrows():
+            inundado = nivel_final > row['Elevacion']
+            folium.CircleMarker(
+                location=[row['Lat'], row['Lon']],
+                radius=row['Poblacion']/3000 + 5,
+                color="#FF4B4B" if inundado else "#2EB82E",
+                fill=True, fill_opacity=0.7,
+                popup=f"<b>{row['Sector']}</b>"
+            ).add_to(m)
+        fol
