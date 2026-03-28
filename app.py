@@ -134,7 +134,7 @@ with tab2:
             label2="MANGLEVISION PROPOSAL",
             width = 20000,
             make_responsive=True,
-            starting_position=50
+            
         )
         st.success("✅ Mangrove barriers dissipate up to 40% of wave energy, protecting urban value.")
     else:
