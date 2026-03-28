@@ -86,29 +86,35 @@ tab1, tab2 = st.tabs(["🌐 RISK DASHBOARD", "🖼️ IMPACT VISUALIZATION (XL)"
 # ==========================================
 # TAB 1: INTERACTIVE RISK MAP
 # ==========================================
-with col_map:
-        # --- FIX: Changed tiles to OpenStreetMap (Most stable for Cloud) ---
-        m = folium.Map(
-            location=[-2.18, -79.90], 
-            zoom_start=12, 
-            tiles='OpenStreetMap' 
-        )
-        
+with tab1:
+    st.subheader("Guayaquil Vulnerability Analysis")
+    col_map, col_chart = st.columns([2, 1])
+    
+    with col_map:
+        # Map visualization
+        m = folium.Map(location=[-2.18, -79.90], zoom_start=12, tiles='CartoDB dark_matter')
         for i, row in df.iterrows():
             is_flooded = effective_height > row['Elevation']
             color = "#FF4B4B" if is_flooded else "#2EB82E"
-            
             folium.CircleMarker(
                 [row['Lat'], row['Lon']], 
-                radius=row['Population']/4000 + 7, # Slightly larger for better visibility
+                radius=row['Population']/4000 + 5, 
                 color=color, 
                 fill=True, 
-                fill_opacity=0.7,
+                fill_opacity=0.6,
                 popup=f"<b>{row['Sector']}</b><br>Elevation: {row['Elevation']}m"
             ).add_to(m)
-            
-        # --- FIX: Ensure the map renders wide enough ---
-        folium_static(m, width=850)
+        folium_static(m, width=900)
+    
+    with col_chart:
+        st.write("### Exposure by Sector")
+        fig = px.bar(df, x='Sector', y='Population', color='Elevation', 
+                     color_continuous_scale='RdYlGn_r', template='plotly_dark')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.write("### Alert List")
+        st.dataframe(at_risk_df[['Sector', 'Population']], hide_index=True, use_container_width=True)
+
 # ==========================================
 # TAB 2: BEFORE/AFTER COMPARISON
 # ==========================================
@@ -126,7 +132,6 @@ with tab2:
             img2=Image.open(img_after),
             label1="CURRENT STATE",
             label2="MANGLEVISION PROPOSAL",
-            width=20000,
             make_responsive=True,
             starting_position=50
         )
