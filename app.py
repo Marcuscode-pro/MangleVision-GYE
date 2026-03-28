@@ -111,7 +111,7 @@ with tab2:
             img2=Image.open("despues.png"),
             label1="ESTADO ACTUAL",
             label2="PROPUESTA MANGLEVISION",
-            width=1400, # Forzamos un número grande
+            width=2000, # Forzamos un número grande
             make_responsive=True # Dejamos que el CSS se encargue de ajustarlo al navegador
         )
     else:
